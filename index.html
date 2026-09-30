@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Life Checklist">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Life Checklist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: black-and-white, dark-first personal hub. Sticky tab bar; each tab is a stacked column of panels, two columns on wide screens. */
+:root {
+  --bg: #000000;
+  --surface: #0c0c0c;
+  --sunken: #1a1a1a;
+  --cell: #141414;
+  --cell-hover: #1f1f1f;
+  --fg: #f4f4f4;
+  --muted: #8c8c8c;
+  --line: #262626;
+  --accent: #ffffff;
+  --accent-ink: #000000;
+  --good: #f4f4f4;
+  --bad: #f4f4f4;
+  --done-ink: rgba(244,244,244,.36);
+  --f-display: "Onest", system-ui, sans-serif;
+  --f-body: "Onest", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff; --surface: #ffffff; --sunken: #f0f0f0; --cell: #f4f4f4; --cell-hover: #e9e9e9; --fg: #0a0a0a; --muted: #6b6b6b; --line: #e0e0e0;
+    --accent: #000000; --accent-ink: #ffffff; --good: #0a0a0a; --bad: #0a0a0a; --done-ink: rgba(10,10,10,.36);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #ffffff; --surface: #ffffff; --sunken: #f0f0f0; --cell: #f4f4f4; --cell-hover: #e9e9e9; --fg: #0a0a0a; --muted: #6b6b6b; --line: #e0e0e0;
+  --accent: #000000; --accent-ink: #ffffff; --good: #0a0a0a; --bad: #0a0a0a; --done-ink: rgba(10,10,10,.36);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+input[type=checkbox] { accent-color: var(--fg); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 60px; }
+
+/* header + tabs */
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: 1.9rem; letter-spacing: -.03em; margin: 0; }
+h1 span { color: var(--muted); font-weight: 500; }
+.today-line { color: var(--muted); font-size: .92rem; }
+.sync { font-size: .78rem; color: var(--muted); font-family: var(--f-mono); }
+nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin: 14px -16px 18px; padding: 8px 16px; border-bottom: 1px solid var(--line);
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; border: 1px solid transparent; background: none; padding: 7px 14px; border-radius: 99px; cursor: pointer; font-weight: 500; color: var(--muted); }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); }
+
+/* generic */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.panel h2 { font-family: var(--f-display); font-size: 1.05rem; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-wrap: balance; }
+.panel h2 small { font-weight: 500; color: var(--muted); font-size: .82rem; }
+.label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 500; font-size: .9rem; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { border-color: transparent; background: none; }
+.btn.warn { color: var(--fg); border-color: var(--fg); border-style: dashed; }
+.btn.sm { padding: 4px 9px; font-size: .82rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 6px 11px; cursor: pointer; font-size: .85rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--sunken); color: var(--fg); font-weight: 600; }
+input[type=text], input[type=number], input[type=date], input[type=time], input[type=search], select, textarea {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-width: 0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.empty-note { color: var(--muted); font-size: .9rem; padding: 10px 0; }
+ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+ul.list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+ul.list li:last-child { border-bottom: 0; }
+.grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.x:hover { color: var(--fg); background: var(--sunken); }
+.pill { display: inline-flex; align-items: center; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 99px;
+  background: var(--sunken); border: 1px solid var(--line); color: var(--fg); white-space: nowrap; }
+.check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--muted); display: grid; place-items: center; flex: none; background: var(--surface); cursor: pointer; padding: 0; }
+.check.on { background: var(--accent); border-color: var(--accent); }
+.check.on::after { content: ""; width: 8px; height: 4px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.strike { text-decoration: line-through; color: var(--done-ink); }
+
+/* timetable */
+.tt-tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { --c: #ddd; display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; font-weight: 500; border-radius: 99px; padding: 4px 10px 4px 5px; cursor: pointer;
+  background: var(--c); color: #111; border: 1px solid rgba(0,0,0,.12); }
+.chip:hover { filter: brightness(.94); }
+.chip .dot { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #111; background: rgba(255,255,255,.6); display: grid; place-items: center; }
+.chip.all .dot { background: #111; }
+.chip.all .dot::after { content: ""; width: 6px; height: 3px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.chip.all { background: repeating-linear-gradient(135deg, var(--c) 0 5px, color-mix(in oklab, var(--c) 45%, #fff) 5px 10px); color: rgba(0,0,0,.5); text-decoration: line-through; }
+.chip small { font-family: var(--f-mono); font-size: .7rem; color: rgba(0,0,0,.55); }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.board { display: grid; grid-template-columns: 48px repeat(10, minmax(92px, 1fr)); grid-template-rows: 32px repeat(5, 108px); min-width: 980px; }
+.hd, .day, .emp, .cell { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+.board > :nth-child(-n+11) { border-top: 0; }
+.hd { display: grid; place-items: center; color: var(--muted); font-family: var(--f-mono); font-size: .8rem; }
+.day { display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; }
+.emp { background: none; border-top: 0; border-left: 0; padding: 0; }
+.editing .emp { cursor: pointer; background: repeating-linear-gradient(135deg, transparent 0 7px, var(--sunken) 7px 9px); }
+.editing .emp:hover::after { content: "+"; font-size: 1.4rem; color: var(--muted); }
+.editing .emp { display: grid; place-items: center; }
+.cell { display: flex; flex-direction: column; min-width: 0; }
+/* timetable cells keep the school board's own colours in both themes, with dark ink on the pastel fill */
+.item { --c: #ddd; position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 5px 8px; border: 0; text-align: left; cursor: pointer;
+  background: var(--c); color: #111; }
+.item + .item { border-top: 1px dashed rgba(0,0,0,.3); }
+.item:hover { filter: brightness(.94); }
+.item .nm { font-family: var(--f-display); font-weight: 600; font-size: 1.35rem; line-height: 1.05; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.item.sm .nm { font-size: .95rem; }
+.item .gp { font-family: var(--f-mono); font-size: .68rem; color: rgba(0,0,0,.6); }
+.item .mt { display: flex; justify-content: space-between; gap: 6px; font-family: var(--f-mono); font-size: .74rem; color: rgba(0,0,0,.62); }
+.item .tk { position: absolute; top: 5px; right: 5px; width: 19px; height: 19px; border-radius: 50%; background: #111; display: none; place-items: center; }
+.item .tk::after { content: ""; width: 7px; height: 3px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.item.done { background: repeating-linear-gradient(135deg, var(--c) 0 6px, color-mix(in oklab, var(--c) 40%, #fff) 6px 12px); }
+.item.done .nm { text-decoration: line-through; text-decoration-thickness: 2px; color: rgba(0,0,0,.45); }
+.item.done .tk { display: grid; }
+.editing .item { outline: 1.5px dashed rgba(0,0,0,.5); outline-offset: -4px; }
+.editing .item .tk { display: none; }
+/* today checklist */
+.cl-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 10px; }
+.cl-tabs button { flex: none; border: 1px solid var(--line); background: none; border-radius: 99px; padding: 4px 11px; font-size: .84rem; cursor: pointer; color: var(--muted); }
+.cl-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.cl-add { display: flex; gap: 8px; margin-bottom: 4px; }
+.cl-add input { flex: 1; }
+.cl-text { flex: 1; min-width: 0; overflow-wrap: anywhere; cursor: text; padding: 2px 0; }
+.cl-text input { width: 100%; }
+.cl-mv { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 2px 4px; font-size: .8rem; border-radius: 6px; }
+.cl-mv:hover { color: var(--fg); background: var(--sunken); }
+.cl-foot { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: .85rem; }
+.cl-settings { display: grid; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+
+/* calendar */
+.cal-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-title { font-family: var(--f-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; min-width: 9ch; }
+.month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.month .wd { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 6px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--sunken); }
+.dcell { min-height: 92px; padding: 5px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dcell:hover { background: var(--sunken); }
+.dcell.out { background: var(--bg); color: var(--muted); }
+.dcell.wkend .dn { color: var(--muted); }
+.dcell .dn { font-family: var(--f-mono); font-size: .8rem; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; }
+.dcell.today .dn { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.dcell.sel { box-shadow: inset 0 0 0 2px var(--accent); }
+.ev { font-size: .72rem; line-height: 1.25; padding: 1px 5px; border-radius: 4px; background: var(--sunken); border-left: 3px solid var(--fg); color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev.done { text-decoration: line-through; opacity: .6; }
+.ev.faint { opacity: .65; }
+.ev.sc { background: none; box-shadow: inset 0 0 0 1px var(--line); border-left: 3px dashed var(--muted); }
+.more { font-size: .7rem; color: var(--muted); padding-left: 5px; }
+.year { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.mini { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.mini h3 { margin: 0 0 6px; font-size: .92rem; font-weight: 700; }
+.mini.cur h3 { color: var(--accent); }
+.mini .g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.mini .g span, .mini .g button { font-family: var(--f-mono); font-size: .68rem; text-align: center; padding: 3px 0; border: 0; background: none; border-radius: 4px; position: relative; }
+.mini .g .h { color: var(--muted); font-size: .6rem; }
+.mini .g button { cursor: pointer; }
+.mini .g button:hover { background: var(--sunken); }
+.mini .g button.today { background: var(--accent); color: var(--accent-ink); }
+.mini .g button.has { font-weight: 700; }
+.mini .g button.has::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--fg); }
+.day-panel { margin-top: 14px; }
+
+/* calories */
+.date-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-nav strong { font-family: var(--f-display); font-size: 1.2rem; min-width: 12ch; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--sunken); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile .v { font-family: var(--f-mono); font-size: clamp(1rem, 4.2vw, 1.45rem); white-space: nowrap; font-weight: 500; letter-spacing: -.02em; }
+.tile .s { font-size: .78rem; color: var(--muted); }
+.form { display: grid; gap: 8px; grid-template-columns: 1fr; }
+.form .r { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.form .r > * { flex: 1 1 90px; }
+.form .r > .btn { flex: 0 0 auto; }
+.meter { height: 10px; background: var(--sunken); border-radius: 99px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--fg); border-radius: 99px; transition: width .25s; }
+.tscroll { overflow-x: auto; }
+table.wk { width: 100%; border-collapse: collapse; font-size: .88rem; }
+table.wk th, table.wk td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.wk th:first-child, table.wk td:first-child { text-align: left; }
+table.wk th { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+table.wk td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+table.wk tr.cur td { background: var(--sunken); }
+
+/* notes */
+.notes { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 720px) { .notes { grid-template-columns: 1fr; } }
+.nlist button { width: 100%; text-align: left; border: 0; background: none; padding: 9px 10px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.nlist button:hover { background: var(--sunken); }
+.nlist button.sel { background: var(--sunken); box-shadow: inset 3px 0 0 var(--accent); }
+.nlist .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nlist .p { font-size: .8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ned input { width: 100%; font-family: var(--f-display); font-size: 1.3rem; font-weight: 700; border: 0; padding: 4px 0; background: none; }
+.ned input:focus, .ned textarea:focus { outline: none; }
+.ned textarea { width: 100%; min-height: 50vh; resize: vertical; border: 0; padding: 4px 0; background: none; line-height: 1.6; }
+
+/* dialogs */
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--fg); padding: 0; width: min(460px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0, 0, 0, .72); }
+dialog form { padding: 18px; display: grid; gap: 12px; }
+dialog h3 { margin: 0; font-family: var(--f-display); font-size: 1.15rem; }
+dialog label { display: grid; gap: 4px; font-size: .82rem; color: var(--muted); font-weight: 500; }
+dialog label > input, dialog label > select, dialog label > textarea { color: var(--fg); font-size: .95rem; }
+.g2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.sub-block { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 10px; }
+.dlg-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.dlg-actions .left { margin-right: auto; }
+.err { color: var(--fg); font-weight: 600; font-size: .85rem; margin: 0; }
+.inline-check { display: flex !important; flex-direction: row; align-items: center; gap: 8px; color: var(--fg) !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+.acct { position: relative; display: flex; align-items: center; gap: 10px; }
+.acct-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.acct-panel .who { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+.acct-panel label.file { display: grid; gap: 4px; font-size: .82rem; color: var(--muted); }
+.auth { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.auth-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: grid; gap: 14px; }
+.auth-card p { margin: 0; color: var(--muted); font-size: .92rem; }
+.auth-card form { display: grid; gap: 10px; }
+.auth-card input { width: 100%; padding: 10px 12px; }
+.auth-card .btn { padding: 10px 14px; }
+.linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 0; font-size: .88rem; text-align: left; }
+.info { color: var(--good); font-size: .88rem; margin: 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Life <span>Checklist</span></h1>
+      <div class="today-line" id="todayLine"></div>
+    </div>
+    <div class="acct">
+      <div class="sync" id="sync">Loading…</div>
+      <button class="btn sm" type="button" id="acctBtn" aria-label="Account and backup">Account</button>
+      <div class="acct-panel" id="acctPanel" hidden>
+        <div class="who" id="acctWho">Not signed in</div>
+        <button class="btn" type="button" id="acctBackup">Download backup</button>
+        <label class="file">Restore from a backup file<input type="file" id="acctFile" accept="application/json,.json"></label>
+        <div class="who" id="acctRestoreMsg"></div>
+        <button class="btn warn" type="button" id="acctRestoreGo" hidden>Replace my data with this backup</button>
+        <button class="btn primary" type="button" id="acctConnect" hidden>Sign in to sync</button>
+        <button class="btn" type="button" id="acctOut" hidden>Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="today">Today</button>
+    <button class="tab" role="tab" data-tab="timetable">Timetable</button>
+    <button class="tab" role="tab" data-tab="calendar">Calendar</button>
+    <button class="tab" role="tab" data-tab="school">School</button>
+    <button class="tab" role="tab" data-tab="calories">Calories</button>
+    <button class="tab" role="tab" data-tab="notes">Notes</button>
+  </nav>
+
+  <!-- TODAY -->
+  <section data-view="today" hidden>
+    <div class="cols">
+      <div class="stack">
+        <div class="panel"><h2><span id="clTitle">Checklist</span> <span class="row" style="gap:6px"><small id="clCount"></small><button class="btn sm" type="button" id="clEditBtn">Edit</button></span></h2>
+          <div class="cl-tabs" id="clTabs"></div>
+          <form class="cl-add" id="clAddForm" autocomplete="off"><input type="text" id="clNew" placeholder="Add an item"><button class="btn primary" type="submit">Add</button></form>
+          <ul class="list" id="clList"></ul>
+          <div class="cl-foot"><label class="row muted"><input type="checkbox" id="clDaily"> Untick everything each new day</label><button class="btn sm" type="button" id="clClear">Remove ticked items</button></div>
+          <div class="cl-settings" id="clSettings" hidden>
+            <label class="row muted" style="font-size:.85rem">List name <input type="text" id="clName" style="flex:1"></label>
+            <div class="row"><button class="btn sm" type="button" id="clNewList">+ New list</button><button class="btn sm warn" type="button" id="clDelList">Delete this list</button></div>
+          </div>
+        </div>
+        <div class="panel"><h2>Today's plans <button class="btn sm" id="tdAddEv" type="button">+ Add</button></h2><div id="tdEvents"></div></div>
+      </div>
+      <div class="stack">
+        <div class="panel"><h2>School coming up <small>next 14 days</small></h2><div id="tdSchool"></div></div>
+        <div class="panel"><h2>Food and water <button class="btn sm" type="button" data-goto="calories">Open</button></h2><div id="tdCal"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMETABLE -->
+  <section data-view="timetable" hidden>
+    <div class="tt-tools">
+      <div class="row">
+        <span class="label">Tick</span>
+        <div class="seg" id="ttMode">
+          <button type="button" data-mode="one">One class</button>
+          <button type="button" data-mode="subject">Whole subject</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="row muted" style="font-size:.85rem"><input type="checkbox" id="ttAuto"> Clear ticks every Monday</label>
+        <button class="btn" type="button" id="ttReset">Clear ticks</button>
+        <button class="btn" type="button" id="ttEdit">Edit timetable</button>
+      </div>
+    </div>
+    <div class="chips" id="ttChips"></div>
+    <div class="scroller"><div class="board" id="ttBoard"></div></div>
+    <p class="muted" id="ttHint" style="font-size:.84rem;margin:10px 0 0">Tap a class to tick it off. Numbers are teacher and room.</p>
+  </section>
+
+  <!-- CALENDAR -->
+  <section data-view="calendar" hidden>
+    <div class="panel" id="calMe"></div>
+  </section>
+
+  <!-- SCHOOL -->
+  <section data-view="school" hidden>
+    <div class="stack">
+      <div class="panel"><h2>To do for school <button class="btn sm primary" type="button" id="scAdd">+ Add test or homework</button></h2><div id="scUpcoming"></div></div>
+      <div class="panel" id="calSchool"></div>
+    </div>
+  </section>
+
+  <!-- CALORIES -->
+  <section data-view="calories" hidden>
+    <div class="row" style="justify-content:space-between;margin-bottom:14px">
+      <div class="date-nav">
+        <button class="btn sm" type="button" id="cPrev" aria-label="Previous day">‹</button>
+        <strong id="cDate"></strong>
+        <button class="btn sm" type="button" id="cNext" aria-label="Next day">›</button>
+        <button class="btn sm ghost" type="button" id="cToday">Today</button>
+      </div>
+      <div class="row" style="font-size:.85rem">
+        <label class="row muted">Daily burn <input type="number" id="setTdee" min="0" step="10" style="width:90px" placeholder="kcal"></label>
+        <label class="row muted">Water goal <input type="number" id="setWater" min="0" step="100" style="width:90px" placeholder="ml"></label>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="stack">
+        <div class="panel"><div class="tiles" id="cTiles"></div><p class="muted" id="cTdeeHint" style="font-size:.82rem;margin:10px 0 0"></p></div>
+        <div class="panel">
+          <h2>Eaten <button class="btn sm" type="button" id="cCopy">Same as yesterday</button></h2>
+          <form class="form" id="foodForm" autocomplete="off">
+            <div class="r"><input type="text" id="fName" list="foodNames" placeholder="Food, e.g. oats" style="flex:3 1 160px">
+              <div class="seg" id="fMode"><button type="button" data-m="kcal">kcal</button><button type="button" data-m="g">grams</button></div></div>
+            <div class="r" id="fKcalRow"><input type="number" id="fKcal" min="0" placeholder="kcal"><button class="btn primary" type="submit">Add</button></div>
+            <div class="r" id="fGramRow" hidden><input type="number" id="fGrams" min="0" placeholder="grams"><input type="number" id="fPer" min="0" placeholder="kcal per 100 g"><button class="btn primary" type="submit">Add</button></div>
+            <datalist id="foodNames"></datalist>
+          </form>
+          <ul class="list" id="foodList" style="margin-top:8px"></ul>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <h2>Burned extra <small>on top of daily burn</small></h2>
+          <form class="form" id="burnForm" autocomplete="off">
+            <div class="r"><input type="text" id="bName" placeholder="Activity, e.g. gym" style="flex:3 1 150px"><input type="number" id="bKcal" min="0" placeholder="kcal"><button class="btn primary" type="submit">Add</button></div>
+          </form>
+          <ul class="list" id="burnList" style="margin-top:8px"></ul>
+        </div>
+        <div class="panel">
+          <h2>Water <small class="num" id="wText"></small></h2>
+          <div class="meter"><i id="wBar"></i></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" type="button" data-water="225">+ Glass (225 ml)</button>
+            <button class="btn" type="button" data-water="500">+ 500 ml</button>
+            <button class="btn ghost" type="button" data-water="-225">− 225</button>
+            <form class="row" id="waterForm"><input type="number" id="wCustom" placeholder="ml" style="width:80px"><button class="btn" type="submit">Add</button></form>
+          </div>
+        </div>
+        <div class="panel"><h2>Last 7 days</h2><div class="tscroll"><table class="wk" id="wkTable"></table></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section data-view="notes" hidden>
+    <div class="notes">
+      <div class="panel">
+        <div class="row" style="margin-bottom:10px"><input type="search" id="nSearch" placeholder="Search notes" style="flex:1"><button class="btn primary" type="button" id="nNew">New</button></div>
+        <div class="nlist" id="nList"></div>
+      </div>
+      <div class="panel ned" id="nEd">
+        <div id="nEmpty" class="empty-note">Pick a note on the left or make a new one.</div>
+        <div id="nForm" hidden>
+          <input type="text" id="nTitle" placeholder="Title">
+          <div class="row" style="justify-content:space-between;margin:4px 0 8px">
+            <span class="muted" style="font-size:.8rem" id="nMeta"></span>
+            <div class="row"><button class="btn sm" type="button" id="nPin">Pin</button><button class="btn sm" type="button" id="nDel">Delete</button></div>
+          </div>
+          <textarea id="nBody" placeholder="Write here…"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Dialog: timetable slot -->
+<dialog id="dlgSlot">
+  <form id="slotForm" method="dialog" autocomplete="off">
+    <h3 id="slTitle">Class</h3>
+    <div class="g2">
+      <label>Day<select id="slDay"><option value="0">Po</option><option value="1">Ut</option><option value="2">Sr</option><option value="3">Če</option><option value="4">Pe</option></select></label>
+      <label>First period<select id="slP"></select></label>
+      <label>Periods long<select id="slS"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+    </div>
+    <div class="sub-block">
+      <div class="g2">
+        <label>Subject<input type="text" id="slN1" list="subjNames" placeholder="MAT"></label>
+        <label>Colour<input type="color" id="slC1" value="#bcdaf8"></label>
+      </div>
+      <div class="g2">
+        <label>Teacher<input type="text" id="slT1"></label>
+        <label>Room<input type="text" id="slR1"></label>
+        <label>Group<input type="text" id="slG1" placeholder="1g · 2g"></label>
+      </div>
+    </div>
+    <label class="inline-check"><input type="checkbox" id="slSplit"> Two classes share this slot (split groups)</label>
+    <div class="sub-block" id="slB" hidden>
+      <div class="g2">
+        <label>Subject<input type="text" id="slN2" list="subjNames"></label>
+        <label>Colour<input type="color" id="slC2" value="#fbd98f"></label>
+      </div>
+      <div class="g2">
+        <label>Teacher<input type="text" id="slT2"></label>
+        <label>Room<input type="text" id="slR2"></label>
+        <label>Group<input type="text" id="slG2"></label>
+      </div>
+    </div>
+    <datalist id="subjNames"></datalist>
+    <p class="err" id="slErr" hidden></p>
+    <div class="dlg-actions">
+      <button class="btn warn left" type="button" id="slDel">Delete</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Dialog: event -->
+<dialog id="dlgEv">
+  <form id="evForm" method="dialog" autocomplete="off">
+    <h3 id="evHead">Event</h3>
+    <label>What<input type="text" id="evTitle" placeholder="e.g. Football practice"></label>
+    <div class="g2">
+      <label>Date<input type="date" id="evDate"></label>
+      <label>Time (optional)<input type="time" id="evTime"></label>
+    </div>
+    <div class="g2" id="evSchoolRow">
+      <label>Type<select id="evType"></select></label>
+      <label>Subject<select id="evSubj"></select></label>
+    </div>
+    <label>Notes<textarea id="evNote" rows="2"></textarea></label>
+    <label class="inline-check" id="evDoneRow"><input type="checkbox" id="evDone"> Done</label>
+    <p class="err" id="evErr" hidden></p>
+    <div class="dlg-actions">
+      <button class="btn warn left" type="button" id="evDel">Delete</button>
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="auth" id="auth" hidden>
+  <div class="auth-card">
+    <h1>Life <span>Checklist</span></h1>
+    <div id="authSetup" hidden style="display:grid;gap:12px">
+      <p>This copy isn't connected to your database yet. Open <strong>config.js</strong> and paste in your Supabase Project URL and key. README.md, step 3, shows where to find them.</p>
+      <button class="linkbtn" type="button" id="useLocal2">Use on this device only, without an account</button>
+    </div>
+    <form id="authForm" autocomplete="on">
+      <p>Sign in to sync between your phone and computer.</p>
+      <input type="email" id="aEmail" placeholder="Email" autocomplete="email" required>
+      <input type="password" id="aPass" placeholder="Password (6+ characters)" autocomplete="current-password" required minlength="6">
+      <p class="err" id="authErr" hidden></p>
+      <p class="info" id="authInfo" hidden></p>
+      <button class="btn primary" type="submit">Sign in</button>
+      <button class="btn" type="button" id="aSignup">Create account</button>
+      <button class="linkbtn" type="button" id="useLocal">Use on this device only, without an account</button>
+    </form>
+  </div>
+</div>
+<script src="config.js"></script>
+<script src="supabase.js"></script>
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "style") el.style.cssText = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "dataset") Object.assign(el.dataset, v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  kids.flat(Infinity).forEach(c => { if (c == null || c === false) return; el.append(c.nodeType ? c : String(c)); });
+  return el;
+}
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+const todayStr = () => ymd(new Date());
+const dayDiff = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clone = o => JSON.parse(JSON.stringify(o));
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WD = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAYS = ["Po","Ut","Sr","Če","Pe"];
+const DAYS_LONG = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const longDate = s => { const d = parse(s); return DAYS_LONG[(d.getDay() + 6) % 7] + ", " + d.getDate() + " " + MONTHS[d.getMonth()]; };
+const TYPES = {
+  test: { label: "Test", c: "#d64545" },
+  oral: { label: "Oral exam", c: "#e08a1e" },
+  homework: { label: "Homework", c: "#2f7fd8" },
+  project: { label: "Project", c: "#8a4fd6" },
+  holiday: { label: "No school", c: "#2a9d6a" },
+  other: { label: "Other", c: "#7a8290" },
+};
+const ME_C = "var(--accent)";
+function twoTap(btn, label, fn) {
+  let t = null;
+  btn.addEventListener("click", () => {
+    if (!t) { btn.textContent = "Tap again to confirm"; t = setTimeout(() => { t = null; btn.textContent = label; }, 3000); return; }
+    clearTimeout(t); t = null; btn.textContent = label; fn();
+  });
+}
+
+const DEFAULT_TT = {"slots": [{"id": "s00", "d": 0, "p": 2, "s": 1, "items": [{"n": "VJE", "t": "7", "r": "203", "g": ""}]}, {"id": "s01", "d": 0, "p": 3, "s": 1, "items": [{"n": "MAT", "t": "18", "r": "203", "g": ""}]}, {"id": "s02", "d": 0, "p": 4, "s": 2, "items": [{"n": "HRV", "t": "8", "r": "203", "g": ""}]}, {"id": "s03", "d": 0, "p": 6, "s": 1, "items": [{"n": "PIG", "t": "15", "r": "203", "g": ""}]}, {"id": "s04", "d": 0, "p": 7, "s": 1, "items": [{"n": "ENG", "t": "6", "r": "203", "g": ""}]}, {"id": "s05", "d": 1, "p": 3, "s": 2, "items": [{"n": "SIS vj", "t": "24", "r": "112", "g": "1g · 2g"}, {"n": "DOIS vj", "t": "30", "r": "106", "g": "1g · 2g"}]}, {"id": "s06", "d": 1, "p": 5, "s": 1, "items": [{"n": "URS", "t": "26", "r": "209", "g": ""}]}, {"id": "s07", "d": 1, "p": 6, "s": 1, "items": [{"n": "SRO", "t": "29", "r": "209", "g": ""}]}, {"id": "s08", "d": 1, "p": 7, "s": 2, "items": [{"n": "WD vj", "t": "31", "r": "205", "g": "1g · 2g"}, {"n": "SJWP vj", "t": "29", "r": "009", "g": "1g · 2g"}]}, {"id": "s09", "d": 1, "p": 9, "s": 2, "items": [{"n": "SJWP vj", "t": "29", "r": "009", "g": "1g · 2g"}, {"n": "TIPK vj", "t": "36", "r": "205", "g": "1g · 2g"}]}, {"id": "s10", "d": 2, "p": 2, "s": 1, "items": [{"n": "PIG", "t": "15", "r": "201", "g": ""}]}, {"id": "s11", "d": 2, "p": 3, "s": 2, "items": [{"n": "KRM vj", "t": "28", "r": "206", "g": "1g · 2g"}, {"n": "POS vj", "t": "38", "r": "105", "g": "1g · 2g"}]}, {"id": "s12", "d": 2, "p": 5, "s": 1, "items": [{"n": "TZK", "t": "12", "r": "D", "g": ""}]}, {"id": "s13", "d": 2, "p": 6, "s": 1, "items": [{"n": "TIPK", "t": "36", "r": "005", "g": ""}]}, {"id": "s14", "d": 2, "p": 7, "s": 1, "items": [{"n": "DOIS", "t": "30", "r": "202", "g": ""}]}, {"id": "s15", "d": 3, "p": 1, "s": 2, "items": [{"n": "URS vj", "t": "26", "r": "109", "g": "1g · 2g"}, {"n": "KRM vj", "t": "28", "r": "112", "g": "1g · 2g"}]}, {"id": "s16", "d": 3, "p": 3, "s": 1, "items": [{"n": "KRM", "t": "28", "r": "101", "g": ""}]}, {"id": "s17", "d": 3, "p": 4, "s": 1, "items": [{"n": "HRJ", "t": "8", "r": "201", "g": ""}]}, {"id": "s18", "d": 3, "p": 5, "s": 1, "items": [{"n": "POS", "t": "38", "r": "201", "g": ""}]}, {"id": "s19", "d": 3, "p": 6, "s": 1, "items": [{"n": "ENG", "t": "6", "r": "201", "g": ""}]}, {"id": "s20", "d": 3, "p": 7, "s": 1, "items": [{"n": "FZ", "t": "44", "r": "005", "g": ""}]}, {"id": "s21", "d": 3, "p": 8, "s": 2, "items": [{"n": "MAT*", "t": "18", "r": "103", "g": ""}]}, {"id": "s22", "d": 4, "p": 1, "s": 2, "items": [{"n": "MAT", "t": "18", "r": "204", "g": ""}]}, {"id": "s23", "d": 4, "p": 3, "s": 1, "items": [{"n": "ENG", "t": "6", "r": "001", "g": ""}]}, {"id": "s24", "d": 4, "p": 4, "s": 1, "items": [{"n": "FZ", "t": "44", "r": "212", "g": ""}]}, {"id": "s25", "d": 4, "p": 5, "s": 1, "items": [{"n": "SIS", "t": "24", "r": "204", "g": ""}]}, {"id": "s26", "d": 4, "p": 6, "s": 1, "items": [{"n": "TZK", "t": "12", "r": "D", "g": ""}]}, {"id": "s27", "d": 4, "p": 8, "s": 2, "items": [{"n": "HRJ*", "t": "8", "r": "102", "g": ""}, {"n": "FIZ*", "t": "19", "r": "101", "g": ""}]}], "colors": {"VJE": "#fdf29a", "MAT": "#e6f5c6", "HRV": "#e2f39a", "PIG": "#f79b7f", "ENG": "#fbdcf9", "SIS": "#ff7cf5", "SIS vj": "#f58cf0", "DOIS vj": "#f9d7d2", "DOIS": "#f9d7d2", "URS": "#fff176", "URS vj": "#fff176", "SRO": "#f6dcf2", "WD vj": "#d9a878", "SJWP vj": "#efd9f3", "TIPK vj": "#fbd98f", "TIPK": "#fbd98f", "KRM vj": "#bcdaf8", "KRM": "#bcdaf8", "POS vj": "#7fe0f7", "POS": "#7fe0f7", "TZK": "#b1f7fb", "HRJ": "#e2f39a", "FZ": "#dff8df", "MAT*": "#eaf5cc", "HRJ*": "#e2f39a", "FIZ*": "#7bc98c"}, "checked": {}, "mode": "one", "autoReset": true, "week": "2026-09-28"};
+
+/* Your Supabase details live in config.js (see README.md, step 3) */
+const SUPABASE_URL = (window.LM_CONFIG && window.LM_CONFIG.url) || "PASTE";
+const SUPABASE_KEY = (window.LM_CONFIG && window.LM_CONFIG.key) || "PASTE";
+
+/* ---------- state + storage ---------- */
+const S = { hub: {}, events: {}, days: {}, notes: {} };
+const LSK = "life-maxxing-cache-v1", PK = "life-maxxing-pending-v1";
+try { const r = localStorage.getItem(LSK); if (r) Object.assign(S, JSON.parse(r)); } catch (e) {}
+function cache() { try { localStorage.setItem(LSK, JSON.stringify(S)); } catch (e) {} }
+const tt = () => S.hub.timetable || (S.hub.timetable = { slots: [], colors: {}, checked: {}, mode: "one", autoReset: true, week: mondayOf(todayStr()) });
+const settings = () => S.hub.settings || (S.hub.settings = { tdee: null, waterGoal: 3500 });
+
+let sb = null, user = null, localOnly = false;
+let pendingData = {};
+try { pendingData = JSON.parse(localStorage.getItem(PK) || "{}"); } catch (e) {}
+const timers = {}, chains = {}, inflight = {};
+const isDirty = p => (p in pendingData) || (inflight[p] > 0);
+function savePending() { try { localStorage.setItem(PK, JSON.stringify(pendingData)); } catch (e) {} }
+function setSync(t) { $("sync").textContent = t; }
+function put(path, data) {
+  cache();
+  if (localOnly) return;
+  pendingData[path] = data; savePending();
+  clearTimeout(timers[path]);
+  timers[path] = setTimeout(() => flush(path), 350);
+}
+function flush(path) {
+  if (!(path in pendingData) || !sb || !user) return;
+  const data = pendingData[path];
+  inflight[path] = (inflight[path] || 0) + 1; setSync("Saving…");
+  chains[path] = (chains[path] || Promise.resolve()).then(async () => {
+    const q = data === null
+      ? sb.from("docs").delete().eq("user_id", user.id).eq("path", path)
+      : sb.from("docs").upsert({ user_id: user.id, path, data, updated_at: new Date().toISOString() });
+    const { error } = await q; if (error) throw error;
+    if (pendingData[path] === data) { delete pendingData[path]; savePending(); }
+    setSync("Synced");
+  }).catch(() => setSync(navigator.onLine ? "Couldn't save. Will retry" : "Offline. Will sync later"))
+    .finally(() => { inflight[path]--; });
+}
+const flushAll = () => Object.keys(pendingData).forEach(flush);
+let pulling = false;
+async function pull() {
+  if (!sb || !user || pulling) return; pulling = true;
+  try {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("docs").select("path,data").range(from, from + 999);
+      if (error) throw error; rows.push(...data); if (data.length < 1000) break;
+    }
+    if (!rows.length) {
+      // brand-new account: upload whatever is on this device
+      if (!(S.hub.timetable && S.hub.timetable.slots.length)) S.hub.timetable = Object.assign(clone(DEFAULT_TT), { week: mondayOf(todayStr()) });
+      for (const col of ["hub", "events", "days", "notes"]) for (const id in S[col]) put(col + "/" + id, S[col][id]);
+    } else {
+      const next = { hub: {}, events: {}, days: {}, notes: {} };
+      rows.forEach(r => { const i = r.path.indexOf("/"); const col = r.path.slice(0, i); if (next[col]) next[col][r.path.slice(i + 1)] = r.data; });
+      for (const col in next) {
+        const local = S[col] || {};
+        new Set([...Object.keys(next[col]), ...Object.keys(local)]).forEach(id => {
+          if (isDirty(col + "/" + id)) { if (local[id]) next[col][id] = local[id]; else delete next[col][id]; }
+        });
+      }
+      Object.assign(S, next);
+    }
+    afterHubLoad(); cache(); renderAll();
+    setSync(Object.keys(pendingData).length ? "Saving…" : "Synced");
+    flushAll();
+  } catch (e) { setSync(navigator.onLine ? "Couldn't load. Showing saved copy" : "Offline. Showing saved copy"); }
+  pulling = false;
+}
+function afterHubLoad() {
+  const t = S.hub.timetable; if (!t) return;
+  const wk = mondayOf(todayStr());
+  if (t.autoReset && t.week !== wk) { t.checked = {}; t.week = wk; put("hub/timetable", t); }
+}
+
+/* ---------- tabs ---------- */
+let tab = "today";
+try { tab = localStorage.getItem("lm-tab") || "today"; } catch (e) {}
+if (/^#(today|timetable|calendar|school|calories|notes)$/.test(location.hash)) tab = location.hash.slice(1);
+function showTab(t) {
+  tab = t; try { localStorage.setItem("lm-tab", t); } catch (e) {}
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  document.querySelectorAll("[data-view]").forEach(s => s.hidden = s.dataset.view !== t);
+  renderAll();
+}
+$("tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if (b) showTab(b.dataset.tab); });
+document.addEventListener("click", e => { const g = e.target.closest("[data-goto]"); if (g) showTab(g.dataset.goto); });
+document.querySelectorAll("dialog [data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
+
+function renderAll() {
+  $("todayLine").textContent = longDate(todayStr()) + " " + new Date().getFullYear();
+  if (tab === "today") renderToday();
+  if (tab === "timetable") renderTimetable();
+  if (tab === "calendar") calMe.render();
+  if (tab === "school") { renderSchoolList(); calSchool.render(); }
+  if (tab === "calories") renderCalories();
+  if (tab === "notes") renderNotes();
+}
+
+/* ---------- timetable ---------- */
+let ttEditing = false;
+const itemKey = (slot, i) => slot.id + ":" + i;
+const colorOf = n => tt().colors[n] || "#d9dce6";
+function subjects() {
+  const out = [], seen = {};
+  tt().slots.slice().sort((a, b) => a.d - b.d || a.p - b.p).forEach(sl => sl.items.forEach((it, i) => {
+    if (!(it.n in seen)) { seen[it.n] = { n: it.n, keys: [] }; out.push(seen[it.n]); }
+    seen[it.n].keys.push(itemKey(sl, i));
+  }));
+  return out;
+}
+function toggleItem(slot, i) {
+  const T = tt(), k = itemKey(slot, i), name = slot.items[i].n;
+  if (T.mode === "subject") {
+    const keys = subjects().find(s => s.n === name).keys;
+    const on = !T.checked[k];
+    keys.forEach(kk => { if (on) T.checked[kk] = true; else delete T.checked[kk]; });
+  } else {
+    if (T.checked[k]) delete T.checked[k]; else T.checked[k] = true;
+  }
+  put("hub/timetable", T); renderAll();
+}
+function renderTimetable() {
+  const T = tt();
+  $("ttMode").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === T.mode));
+  $("ttAuto").checked = !!T.autoReset;
+  $("ttEdit").textContent = ttEditing ? "Done editing" : "Edit timetable";
+  $("ttEdit").className = ttEditing ? "btn primary" : "btn";
+  $("ttHint").textContent = ttEditing ? "Tap a class to change or delete it. Tap an empty square to add a class." : "Tap a class to tick it off. Numbers are teacher and room.";
+  // chips
+  const chips = $("ttChips"); chips.replaceChildren();
+  subjects().forEach(s => {
+    const n = s.keys.filter(k => T.checked[k]).length;
+    chips.append(h("button", { type: "button", class: "chip" + (n === s.keys.length ? " all" : ""), style: "--c:" + colorOf(s.n),
+      onclick: () => { const on = n !== s.keys.length; s.keys.forEach(k => { if (on) T.checked[k] = true; else delete T.checked[k]; }); put("hub/timetable", T); renderAll(); } },
+      h("span", { class: "dot" }), s.n, h("small", {}, n + "/" + s.keys.length)));
+  });
+  // board
+  const b = $("ttBoard"); b.replaceChildren(); b.parentElement.classList.toggle("editing", ttEditing);
+  b.append(h("div", { class: "hd" }));
+  for (let p = 1; p <= 10; p++) b.append(h("div", { class: "hd" }, p));
+  const filled = new Set();
+  T.slots.forEach(sl => { for (let i = 0; i < sl.s; i++) filled.add(sl.d + ":" + (sl.p + i)); });
+  DAYS.forEach((d, di) => {
+    b.append(h("div", { class: "day", style: `grid-row:${di + 2};grid-column:1` }, d));
+    for (let p = 1; p <= 10; p++) if (!filled.has(di + ":" + p))
+      b.append(h(ttEditing ? "button" : "div", { type: ttEditing ? "button" : null, class: "emp", "aria-label": ttEditing ? `Add class ${d} period ${p}` : null,
+        style: `grid-row:${di + 2};grid-column:${p + 1}`, onclick: ttEditing ? () => openSlot(null, di, p) : null }));
+  });
+  T.slots.forEach(sl => {
+    const cell = h("div", { class: "cell", style: `grid-row:${sl.d + 2};grid-column:${sl.p + 1} / span ${sl.s}` });
+    sl.items.forEach((it, i) => {
+      const done = !!T.checked[itemKey(sl, i)];
+      cell.append(h("button", { type: "button", class: "item" + (sl.items.length > 1 ? " sm" : "") + (done ? " done" : ""), style: "--c:" + colorOf(it.n), "aria-pressed": String(done),
+        onclick: () => ttEditing ? openSlot(sl) : toggleItem(sl, i) },
+        h("span", { class: "nm" }, it.n), it.g ? h("span", { class: "gp" }, it.g) : null,
+        h("span", { class: "mt" }, h("span", {}, it.t || ""), h("span", {}, it.r || "")), h("span", { class: "tk" })));
+    });
+    b.append(cell);
+  });
+}
+$("ttMode").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tt().mode = b.dataset.mode; put("hub/timetable", tt()); renderAll(); });
+$("ttAuto").addEventListener("change", e => { const T = tt(); T.autoReset = e.target.checked; T.week = mondayOf(todayStr()); put("hub/timetable", T); });
+$("ttEdit").addEventListener("click", () => { ttEditing = !ttEditing; renderAll(); });
+twoTap($("ttReset"), "Clear ticks", () => { const T = tt(); T.checked = {}; T.week = mondayOf(todayStr()); put("hub/timetable", T); renderAll(); });
+
+// slot dialog
+for (let p = 1; p <= 10; p++) $("slP").append(h("option", { value: p }, p + "."));
+let editingSlot = null;
+$("slSplit").addEventListener("change", e => { $("slB").hidden = !e.target.checked; });
+["1", "2"].forEach(n => $("slN" + n).addEventListener("input", e => { const c = tt().colors[e.target.value.trim()]; if (c) $("slC" + n).value = c; }));
+function openSlot(sl, d, p) {
+  editingSlot = sl;
+  $("subjNames").replaceChildren(...subjects().map(s => h("option", { value: s.n })));
+  $("slTitle").textContent = sl ? "Edit class" : "Add class";
+  $("slDel").hidden = !sl; $("slErr").hidden = true;
+  $("slDay").value = sl ? sl.d : d; $("slP").value = sl ? sl.p : p; $("slS").value = sl ? sl.s : 1;
+  const a = sl ? sl.items[0] : {}, b2 = sl && sl.items[1] ? sl.items[1] : null;
+  $("slN1").value = a.n || ""; $("slT1").value = a.t || ""; $("slR1").value = a.r || ""; $("slG1").value = a.g || ""; $("slC1").value = a.n ? colorOf(a.n) : "#bcdaf8";
+  $("slSplit").checked = !!b2; $("slB").hidden = !b2;
+  $("slN2").value = b2 ? b2.n : ""; $("slT2").value = b2 ? b2.t || "" : ""; $("slR2").value = b2 ? b2.r || "" : ""; $("slG2").value = b2 ? b2.g || "" : ""; $("slC2").value = b2 ? colorOf(b2.n) : "#fbd98f";
+  $("dlgSlot").showModal(); $("slN1").focus();
+}
+$("slotForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const T = tt(), err = m => { $("slErr").textContent = m; $("slErr").hidden = false; };
+  const d = +$("slDay").value, p = +$("slP").value, s = +$("slS").value;
+  const n1 = $("slN1").value.trim(); if (!n1) return err("Give the class a subject name.");
+  if (p + s - 1 > 10) return err("That runs past period 10. Shorten it or start earlier.");
+  const clash = T.slots.find(o => o !== editingSlot && o.d === d && o.p < p + s && p < o.p + o.s);
+  if (clash) return err("That overlaps " + clash.items.map(i => i.n).join(" / ") + ". Move or delete that class first.");
+  const items = [{ n: n1, t: $("slT1").value.trim(), r: $("slR1").value.trim(), g: $("slG1").value.trim() }];
+  T.colors[n1] = $("slC1").value;
+  if ($("slSplit").checked) {
+    const n2 = $("slN2").value.trim(); if (!n2) return err("Give the second class a subject name, or untick the split option.");
+    items.push({ n: n2, t: $("slT2").value.trim(), r: $("slR2").value.trim(), g: $("slG2").value.trim() });
+    T.colors[n2] = $("slC2").value;
+  }
+  if (editingSlot) Object.assign(editingSlot, { d, p, s, items });
+  else T.slots.push({ id: uid(), d, p, s, items });
+  put("hub/timetable", T); $("dlgSlot").close(); renderAll();
+});
+twoTap($("slDel"), "Delete", () => {
+  const T = tt(); T.slots = T.slots.filter(o => o !== editingSlot);
+  Object.keys(T.checked).forEach(k => { if (k.startsWith(editingSlot.id + ":")) delete T.checked[k]; });
+  put("hub/timetable", T); $("dlgSlot").close(); renderAll();
+});
+
+/* ---------- events ---------- */
+function eventsOn(date, which) {
+  return Object.entries(S.events).map(([id, e]) => ({ id, ...e }))
+    .filter(e => e.date === date && (which === "all" || e.cal === which))
+    .sort((a, b) => (a.cal === b.cal ? 0 : a.cal === "school" ? 1 : -1) || (a.time || "99").localeCompare(b.time || "99"));
+}
+const evColor = e => e.cal === "school" ? (TYPES[e.type] || TYPES.other).c : ME_C;
+let editingEv = null;
+Object.entries(TYPES).forEach(([k, v]) => $("evType").append(h("option", { value: k }, v.label)));
+function openEvent(ev, cal, date) {
+  editingEv = ev ? { ...ev } : { cal, date };
+  const isSchool = editingEv.cal === "school";
+  $("evHead").textContent = (ev ? "Edit " : "Add ") + (isSchool ? "school item" : "event");
+  $("evTitle").placeholder = isSchool ? "e.g. Chapter 3 test" : "e.g. Football practice";
+  $("evSchoolRow").hidden = !isSchool; $("evDoneRow").hidden = !isSchool;
+  $("evSubj").replaceChildren(h("option", { value: "" }, "None"), ...subjects().map(s => h("option", { value: s.n }, s.n)));
+  $("evTitle").value = editingEv.title || ""; $("evDate").value = editingEv.date || todayStr(); $("evTime").value = editingEv.time || "";
+  $("evType").value = editingEv.type || "test"; $("evSubj").value = editingEv.subject || ""; $("evNote").value = editingEv.note || "";
+  $("evDone").checked = !!editingEv.done; $("evDel").hidden = !ev; $("evErr").hidden = true;
+  $("dlgEv").showModal(); $("evTitle").focus();
+}
+$("evForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const isSchool = editingEv.cal === "school";
+  let title = $("evTitle").value.trim();
+  if (!title && isSchool) title = (TYPES[$("evType").value].label) + ($("evSubj").value ? " " + $("evSubj").value : "");
+  if (!title) { $("evErr").textContent = "Write what it is."; $("evErr").hidden = false; return; }
+  if (!$("evDate").value) { $("evErr").textContent = "Pick a date."; $("evErr").hidden = false; return; }
+  const id = editingEv.id || uid();
+  const doc = { cal: editingEv.cal, title, date: $("evDate").value, time: $("evTime").value || "", note: $("evNote").value.trim() };
+  if (isSchool) Object.assign(doc, { type: $("evType").value, subject: $("evSubj").value, done: $("evDone").checked });
+  S.events[id] = doc; put("events/" + id, doc); $("dlgEv").close(); renderAll();
+});
+twoTap($("evDel"), "Delete", () => { delete S.events[editingEv.id]; put("events/" + editingEv.id, null); $("dlgEv").close(); renderAll(); });
+function toggleDone(id) { const e = S.events[id]; e.done = !e.done; put("events/" + id, e); renderAll(); }
+
+function eventRow(e, showDate) {
+  const isS = e.cal === "school";
+  return h("li", {},
+    isS ? h("button", { type: "button", class: "check" + (e.done ? " on" : ""), "aria-label": "Mark done", onclick: () => toggleDone(e.id) }) : null,
+    h("div", { class: "grow", style: "cursor:pointer", onclick: () => openEvent(e) },
+      h("div", { class: e.done ? "strike" : "" }, h("strong", { style: "font-weight:600" }, e.title)),
+      h("div", { class: "row", style: "gap:6px;margin-top:2px;font-size:.8rem" },
+        isS ? h("span", { class: "pill", style: "--c:" + evColor(e) }, (TYPES[e.type] || TYPES.other).label) : null,
+        isS && e.subject ? h("span", { class: "pill", style: "--c:" + colorOf(e.subject) }, e.subject) : null,
+        showDate ? h("span", { class: "muted" }, showDate) : null,
+        e.time ? h("span", { class: "muted num" }, e.time) : null)));
+}
+function relDay(date) {
+  const n = dayDiff(todayStr(), date);
+  if (n === 0) return "Today"; if (n === 1) return "Tomorrow"; if (n === -1) return "Yesterday";
+  return n > 0 ? "in " + n + " days · " + longDate(date).split(",")[0].slice(0, 3) + " " + parse(date).getDate() + "." : Math.abs(n) + " days ago";
+}
+function schoolUpcoming(days) {
+  const t = todayStr();
+  return Object.entries(S.events).map(([id, e]) => ({ id, ...e }))
+    .filter(e => e.cal === "school" && e.type !== "holiday" && ((!e.done && e.date < t) || (e.date >= t && dayDiff(t, e.date) <= days)))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""));
+}
+function renderSchoolList() {
+  const box = $("scUpcoming"); box.replaceChildren();
+  const list = schoolUpcoming(60);
+  if (!list.length) { box.append(h("div", { class: "empty-note" }, "Nothing coming up. Add tests, oral exams and homework here or by tapping a day below.")); return; }
+  const ul = h("ul", { class: "list" });
+  list.forEach(e => { const row = eventRow(e, relDay(e.date)); if (!e.done && e.date < todayStr()) row.querySelector(".muted").style.fontWeight = "700"; ul.append(row); });
+  box.append(ul);
+}
+$("scAdd").addEventListener("click", () => openEvent(null, "school", todayStr()));
+$("tdAddEv").addEventListener("click", () => openEvent(null, "me", todayStr()));
+
+/* ---------- calendar component ---------- */
+function makeCal(root, cal) {
+  const st = { y: new Date().getFullYear(), m: new Date().getMonth(), view: "month", sel: todayStr(), showSchool: true };
+  try { const v = localStorage.getItem("lm-calview-" + cal); if (v) st.view = v; } catch (e) {}
+  const which = () => cal === "school" ? "school" : (st.showSchool ? "all" : "me");
+  function render() {
+    root.replaceChildren();
+    const head = h("div", { class: "cal-head" },
+      h("div", { class: "row" },
+        h("button", { class: "btn sm", type: "button", "aria-label": "Previous", onclick: () => { if (st.view === "year") st.y--; else { st.m--; if (st.m < 0) { st.m = 11; st.y--; } } render(); } }, "‹"),
+        h("div", { class: "cal-title" }, st.view === "year" ? String(st.y) : MONTHS[st.m] + " " + st.y),
+        h("button", { class: "btn sm", type: "button", "aria-label": "Next", onclick: () => { if (st.view === "year") st.y++; else { st.m++; if (st.m > 11) { st.m = 0; st.y++; } } render(); } }, "›"),
+        h("button", { class: "btn sm ghost", type: "button", onclick: () => { const d = new Date(); st.y = d.getFullYear(); st.m = d.getMonth(); st.sel = todayStr(); render(); } }, "Today")),
+      h("div", { class: "row" },
+        cal === "me" ? h("label", { class: "row muted", style: "font-size:.85rem" }, h("input", { type: "checkbox", checked: st.showSchool, onchange: e => { st.showSchool = e.target.checked; render(); } }), "Show school") : null,
+        h("div", { class: "seg" },
+          h("button", { type: "button", "aria-pressed": String(st.view === "month"), onclick: () => setView("month") }, "Month"),
+          h("button", { type: "button", "aria-pressed": String(st.view === "year"), onclick: () => setView("year") }, "Year")),
+        h("button", { class: "btn sm primary", type: "button", onclick: () => openEvent(null, cal, st.sel) }, cal === "school" ? "+ Add" : "+ Add event")));
+    const cb = head.querySelector("input[type=checkbox]"); if (cb) cb.checked = st.showSchool;
+    root.append(head);
+    if (st.view === "year") root.append(yearView()); else { root.append(monthView()); root.append(dayPanel()); }
+  }
+  function setView(v) { st.view = v; try { localStorage.setItem("lm-calview-" + cal, v); } catch (e) {} render(); }
+  function monthView() {
+    const g = h("div", { class: "month" });
+    WD.forEach(w => g.append(h("div", { class: "wd" }, w)));
+    const first = new Date(st.y, st.m, 1), off = (first.getDay() + 6) % 7, dim = new Date(st.y, st.m + 1, 0).getDate();
+    const total = Math.ceil((off + dim) / 7) * 7, t = todayStr();
+    for (let i = 0; i < total; i++) {
+      const d = new Date(st.y, st.m, 1 - off + i), s = ymd(d), evs = eventsOn(s, which());
+      const cls = "dcell" + (d.getMonth() !== st.m ? " out" : "") + (s === t ? " today" : "") + (s === st.sel ? " sel" : "") + (i % 7 >= 5 ? " wkend" : "");
+      g.append(h("button", { type: "button", class: cls, "aria-label": longDate(s), onclick: () => { st.sel = s; if (d.getMonth() !== st.m) { st.m = d.getMonth(); st.y = d.getFullYear(); } render(); } },
+        h("span", { class: "dn" }, d.getDate()),
+        evs.slice(0, 3).map(e => h("span", { class: "ev" + (e.cal === "school" ? " sc" : "") + (e.done ? " done" : "") + (cal === "me" && e.cal === "school" ? " faint" : "") }, (e.time ? e.time + " " : "") + e.title)),
+        evs.length > 3 ? h("span", { class: "more" }, "+" + (evs.length - 3) + " more") : null));
+    }
+    return h("div", { style: "overflow-x:auto" }, h("div", { style: "min-width:560px" }, g));
+  }
+  function dayPanel() {
+    const evs = eventsOn(st.sel, which());
+    const ul = h("ul", { class: "list" }); evs.forEach(e => ul.append(eventRow(e)));
+    return h("div", { class: "day-panel" },
+      h("h2", { style: "font-size:1rem;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center" }, longDate(st.sel),
+        h("button", { class: "btn sm", type: "button", onclick: () => openEvent(null, cal, st.sel) }, "+ Add to this day")),
+      evs.length ? ul : h("div", { class: "empty-note" }, "Nothing on this day."));
+  }
+  function yearView() {
+    const wrap = h("div", { class: "year" }), t = todayStr(), now = new Date();
+    for (let m = 0; m < 12; m++) {
+      const g = h("div", { class: "g" }); WD.forEach(w => g.append(h("span", { class: "h" }, w[0])));
+      const off = (new Date(st.y, m, 1).getDay() + 6) % 7, dim = new Date(st.y, m + 1, 0).getDate();
+      for (let i = 0; i < off; i++) g.append(h("span"));
+      for (let d = 1; d <= dim; d++) {
+        const s = st.y + "-" + pad(m + 1) + "-" + pad(d), evs = eventsOn(s, which());
+        g.append(h("button", { type: "button", class: (s === t ? "today " : "") + (evs.length ? "has" : ""), style: evs.length ? "--c:" + evColor(evs[0]) : null,
+          title: evs.map(e => e.title).join(", ") || null, onclick: () => { st.m = m; st.sel = s; setView("month"); } }, d));
+      }
+      wrap.append(h("div", { class: "mini" + (st.y === now.getFullYear() && m === now.getMonth() ? " cur" : "") }, h("h3", {}, MONTHS[m]), g));
+    }
+    return wrap;
+  }
+  return { render };
+}
+const calMe = makeCal($("calMe"), "me");
+const calSchool = makeCal($("calSchool"), "school");
+
+/* ---------- calories ---------- */
+let cDay = todayStr(), fMode = "kcal";
+const dayDoc = s => S.days[s] || { food: [], burn: [], water: 0 };
+function saveDay(s, d) { S.days[s] = d; put("days/" + s, d); renderAll(); }
+const sum = a => a.reduce((x, y) => x + (+y.kcal || 0), 0);
+function dayStats(s) {
+  const d = dayDoc(s), tdee = +settings().tdee || 0, eaten = sum(d.food), extra = sum(d.burn);
+  return { eaten, extra, burned: tdee + extra, net: eaten - (tdee + extra), water: d.water || 0, has: !!S.days[s] };
+}
+const fmt = n => Math.round(n).toLocaleString("en-US").replace(/,/g, " ");
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
+function renderCalories() {
+  const st = dayStats(cDay), d = dayDoc(cDay), set = settings();
+  $("cDate").textContent = cDay === todayStr() ? "Today" : longDate(cDay);
+  if (document.activeElement !== $("setTdee")) $("setTdee").value = set.tdee || "";
+  if (document.activeElement !== $("setWater")) $("setWater").value = set.waterGoal || "";
+  $("cTiles").replaceChildren(
+    h("div", { class: "tile" }, h("div", { class: "label" }, "Eaten"), h("div", { class: "v" }, fmt(st.eaten)), h("div", { class: "s" }, d.food.length + " items")),
+    h("div", { class: "tile" }, h("div", { class: "label" }, "Burned"), h("div", { class: "v" }, fmt(st.burned)), h("div", { class: "s" }, fmt(+set.tdee || 0) + " + " + fmt(st.extra) + " extra")),
+    h("div", { class: "tile " + (st.net < 0 ? "net-neg" : st.net > 0 ? "net-pos" : "") }, h("div", { class: "label" }, "Net"), h("div", { class: "v" }, signed(st.net)), h("div", { class: "s" }, st.net < 0 ? "deficit" : st.net > 0 ? "surplus" : "even")));
+  $("cTdeeHint").textContent = set.tdee ? "" : "Set your daily burn (top right) so the net balance counts it.";
+  const fl = $("foodList"); fl.replaceChildren();
+  if (!d.food.length) fl.append(h("li", { class: "muted" }, "Nothing logged yet."));
+  d.food.forEach(f => fl.append(h("li", {}, h("span", { class: "grow" }, f.name, f.grams ? h("span", { class: "muted num", style: "font-size:.8rem" }, "  " + f.grams + " g") : null),
+    h("span", { class: "num" }, fmt(f.kcal)), h("button", { type: "button", class: "x", "aria-label": "Remove " + f.name, onclick: () => { const n = clone(d); n.food = n.food.filter(x => x.id !== f.id); saveDay(cDay, n); } }, "×"))));
+  const bl = $("burnList"); bl.replaceChildren();
+  if (!d.burn.length) bl.append(h("li", { class: "muted" }, "No extra activity logged."));
+  d.burn.forEach(f => bl.append(h("li", {}, h("span", { class: "grow" }, f.name), h("span", { class: "num" }, fmt(f.kcal)),
+    h("button", { type: "button", class: "x", "aria-label": "Remove " + f.name, onclick: () => { const n = clone(d); n.burn = n.burn.filter(x => x.id !== f.id); saveDay(cDay, n); } }, "×"))));
+  const goal = +set.waterGoal || 0;
+  $("wText").textContent = fmt(st.water) + (goal ? " / " + fmt(goal) + " ml" : " ml");
+  $("wBar").style.width = goal ? Math.min(100, st.water / goal * 100) + "%" : "0%";
+  // foods datalist
+  const known = knownFoods(); $("foodNames").replaceChildren(...Object.keys(known).map(n => h("option", { value: n })));
+  // week table
+  const rows = [];
+  for (let i = 6; i >= 0; i--) {
+    const s = addDays(cDay, -i), x = dayStats(s);
+    rows.push(h("tr", { class: s === cDay ? "cur" : "" }, h("td", {}, longDate(s).slice(0, 3) + " " + parse(s).getDate() + "."),
+      h("td", {}, x.has ? fmt(x.eaten) : "–"), h("td", {}, x.has ? fmt(x.burned) : "–"), h("td", {}, x.has ? signed(x.net) : "–"), h("td", {}, x.has && x.water ? fmt(x.water) : "–")));
+  }
+  $("wkTable").replaceChildren(
+    h("thead", {}, h("tr", {}, h("th", {}, "Day"), h("th", {}, "Eaten"), h("th", {}, "Burned"), h("th", {}, "Net"), h("th", {}, "Water"))),
+    h("tbody", {}, rows));
+}
+function knownFoods() {
+  const m = {};
+  Object.keys(S.days).sort().forEach(k => (S.days[k].food || []).forEach(f => { m[f.name] = f; }));
+  return m;
+}
+function setFMode(m) {
+  fMode = m; $("fMode").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+  $("fKcalRow").hidden = m !== "kcal"; $("fGramRow").hidden = m !== "g";
+}
+setFMode("kcal");
+$("fMode").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setFMode(b.dataset.m); });
+$("fName").addEventListener("change", () => {
+  const f = knownFoods()[$("fName").value.trim()]; if (!f) return;
+  if (f.per) { setFMode("g"); $("fPer").value = f.per; $("fGrams").value = f.grams || ""; } else { setFMode("kcal"); $("fKcal").value = f.kcal; }
+});
+$("foodForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("fName").value.trim() || "Food";
+  let item;
+  if (fMode === "g") {
+    const g = +$("fGrams").value, per = +$("fPer").value; if (!g || !per) { (g ? $("fPer") : $("fGrams")).focus(); return; }
+    item = { id: uid(), name, kcal: Math.round(g * per / 100), grams: g, per };
+  } else {
+    const k = +$("fKcal").value; if (!k && k !== 0 || $("fKcal").value === "") { $("fKcal").focus(); return; }
+    item = { id: uid(), name, kcal: Math.round(k) };
+  }
+  const n = clone(dayDoc(cDay)); n.food.push(item); saveDay(cDay, n);
+  $("fName").value = ""; $("fKcal").value = ""; $("fGrams").value = ""; $("fPer").value = ""; $("fName").focus();
+});
+$("burnForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const k = +$("bKcal").value; if (!k) { $("bKcal").focus(); return; }
+  const n = clone(dayDoc(cDay)); n.burn.push({ id: uid(), name: $("bName").value.trim() || "Activity", kcal: Math.round(k) }); saveDay(cDay, n);
+  $("bName").value = ""; $("bKcal").value = "";
+});
+function addWater(ml) { const n = clone(dayDoc(cDay)); n.water = Math.max(0, (n.water || 0) + ml); saveDay(cDay, n); }
+document.querySelectorAll("[data-water]").forEach(b => b.addEventListener("click", () => addWater(+b.dataset.water)));
+$("waterForm").addEventListener("submit", e => { e.preventDefault(); const v = +$("wCustom").value; if (v) { addWater(v); $("wCustom").value = ""; } });
+twoTap($("cCopy"), "Same as yesterday", () => {
+  const y = dayDoc(addDays(cDay, -1)); if (!y.food.length) { $("cCopy").textContent = "Yesterday is empty"; setTimeout(() => $("cCopy").textContent = "Same as yesterday", 2000); return; }
+  const n = clone(dayDoc(cDay)); y.food.forEach(f => n.food.push({ ...f, id: uid() })); saveDay(cDay, n);
+});
+$("cPrev").addEventListener("click", () => { cDay = addDays(cDay, -1); renderAll(); });
+$("cNext").addEventListener("click", () => { cDay = addDays(cDay, 1); renderAll(); });
+$("cToday").addEventListener("click", () => { cDay = todayStr(); renderAll(); });
+function saveSettings() { const s = settings(); s.tdee = +$("setTdee").value || null; s.waterGoal = +$("setWater").value || null; put("hub/settings", s); renderAll(); }
+$("setTdee").addEventListener("change", saveSettings); $("setWater").addEventListener("change", saveSettings);
+
+/* ---------- today ---------- */
+function renderToday() {
+  const t = todayStr();
+  renderChecklist();
+  const evs = eventsOn(t, "me"), eb = $("tdEvents"); eb.replaceChildren();
+  if (!evs.length) eb.append(h("div", { class: "empty-note" }, "Nothing planned today."));
+  else { const ul = h("ul", { class: "list" }); evs.forEach(e => ul.append(eventRow(e))); eb.append(ul); }
+  const sb = $("tdSchool"); sb.replaceChildren(); const up = schoolUpcoming(14);
+  if (!up.length) sb.append(h("div", { class: "empty-note" }, "No tests or homework in the next two weeks."));
+  else { const ul = h("ul", { class: "list" }); up.forEach(e => { const r = eventRow(e, relDay(e.date)); if (!e.done && e.date < t) r.querySelector(".muted").style.fontWeight = "700"; ul.append(r); }); sb.append(ul); }
+  const st = dayStats(t), goal = +settings().waterGoal || 0;
+  $("tdCal").replaceChildren(
+    h("div", { class: "tiles" },
+      h("div", { class: "tile" }, h("div", { class: "label" }, "Eaten"), h("div", { class: "v" }, fmt(st.eaten))),
+      h("div", { class: "tile" }, h("div", { class: "label" }, "Burned"), h("div", { class: "v" }, fmt(st.burned))),
+      h("div", { class: "tile " + (st.net < 0 ? "net-neg" : st.net > 0 ? "net-pos" : "") }, h("div", { class: "label" }, "Net"), h("div", { class: "v" }, signed(st.net)))),
+    h("div", { class: "row", style: "margin-top:12px;justify-content:space-between" },
+      h("span", { class: "num" }, "Water " + fmt(st.water) + (goal ? " / " + fmt(goal) : "") + " ml"),
+      h("button", { class: "btn sm", type: "button", onclick: () => { cDay = t; addWater(225); } }, "+ Glass")),
+    h("div", { class: "meter", style: "margin-top:8px" }, h("i", { style: "width:" + (goal ? Math.min(100, st.water / goal * 100) : 0) + "%" })));
+}
+
+
+/* ---------- today checklist ---------- */
+let clEditing = false;
+function arrow(up) { const s = h("span", { style: "display:inline-grid" }); s.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (up ? 'M3 9l4-4 4 4' : 'M3 5l4 4 4-4') + '"/></svg>'; return s; }
+function cls() {
+  if (!S.hub.checklists || !S.hub.checklists.lists || !S.hub.checklists.lists.length)
+    S.hub.checklists = { active: "l1", lists: [{ id: "l1", name: "To do", daily: false, day: todayStr(), items: [] }] };
+  return S.hub.checklists;
+}
+function clActive() { const C = cls(); return C.lists.find(l => l.id === C.active) || C.lists[0]; }
+function clSave() { put("hub/checklists", cls()); renderChecklist(); }
+function clDailyReset() {
+  const C = cls(), t = todayStr(); let changed = false;
+  C.lists.forEach(l => { if (l.daily && l.day !== t) { l.items.forEach(i => i.done = false); l.day = t; changed = true; } });
+  if (changed) put("hub/checklists", C);
+}
+function renderChecklist() {
+  clDailyReset();
+  const C = cls(), L = clActive();
+  $("clTitle").textContent = L.name || "Checklist";
+  $("clEditBtn").textContent = clEditing ? "Done" : "Edit";
+  $("clSettings").hidden = !clEditing;
+  if (document.activeElement !== $("clName")) $("clName").value = L.name || "";
+  $("clDaily").checked = !!L.daily;
+  $("clDelList").hidden = C.lists.length < 2;
+  const tabs = $("clTabs"); tabs.replaceChildren(); tabs.hidden = C.lists.length < 2;
+  C.lists.forEach(l => tabs.append(h("button", { type: "button", "aria-pressed": String(l.id === L.id), onclick: () => { C.active = l.id; clSave(); } }, l.name || "Untitled")));
+  const done = L.items.filter(i => i.done).length;
+  $("clCount").textContent = L.items.length ? done + " / " + L.items.length : "";
+  const ul = $("clList"); ul.replaceChildren();
+  if (!L.items.length) ul.append(h("li", { class: "muted", style: "font-size:.9rem" }, "Nothing here yet. Type above and press Add."));
+  L.items.forEach((it, idx) => {
+    const text = h("span", { class: "cl-text" + (it.done ? " strike" : ""), title: "Tap to edit" }, it.text);
+    text.addEventListener("click", () => {
+      if (text.querySelector("input")) return;
+      const inp = h("input", { type: "text", value: it.text });
+      let fin = false; const finish = save => { if (fin) return; fin = true; if (save) { const v = inp.value.trim(); if (v) it.text = v; else L.items.splice(L.items.indexOf(it), 1); } clSave(); };
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } if (e.key === "Escape") { inp.dataset.cancel = "1"; inp.blur(); } });
+      inp.addEventListener("blur", () => finish(!inp.dataset.cancel));
+      text.replaceChildren(inp); inp.focus(); inp.select();
+    });
+    ul.append(h("li", {},
+      h("button", { type: "button", class: "check" + (it.done ? " on" : ""), "aria-label": (it.done ? "Untick " : "Tick ") + it.text, onclick: () => { it.done = !it.done; clSave(); } }),
+      text,
+      clEditing ? h("button", { type: "button", class: "cl-mv", "aria-label": "Move up", disabled: idx === 0 ? true : null, onclick: () => { L.items.splice(idx - 1, 0, L.items.splice(idx, 1)[0]); clSave(); } }, arrow(true)) : null,
+      clEditing ? h("button", { type: "button", class: "cl-mv", "aria-label": "Move down", disabled: idx === L.items.length - 1 ? true : null, onclick: () => { L.items.splice(idx + 1, 0, L.items.splice(idx, 1)[0]); clSave(); } }, arrow(false)) : null,
+      h("button", { type: "button", class: "x", "aria-label": "Remove " + it.text, onclick: () => { L.items.splice(idx, 1); clSave(); } }, "×")));
+  });
+}
+$("clAddForm").addEventListener("submit", e => {
+  e.preventDefault(); const v = $("clNew").value.trim(); if (!v) return;
+  clActive().items.push({ id: uid(), text: v, done: false }); $("clNew").value = ""; clSave(); $("clNew").focus();
+});
+$("clEditBtn").addEventListener("click", () => { clEditing = !clEditing; renderChecklist(); });
+$("clDaily").addEventListener("change", e => { const L = clActive(); L.daily = e.target.checked; L.day = todayStr(); clSave(); });
+$("clClear").addEventListener("click", () => { const L = clActive(); L.items = L.items.filter(i => !i.done); clSave(); });
+$("clName").addEventListener("input", e => { clActive().name = e.target.value; put("hub/checklists", cls()); $("clTitle").textContent = e.target.value || "Checklist"; });
+$("clName").addEventListener("change", () => renderChecklist());
+$("clNewList").addEventListener("click", () => { const C = cls(), id = uid(); C.lists.push({ id, name: "New list", daily: false, day: todayStr(), items: [] }); C.active = id; clSave(); $("clName").focus(); $("clName").select(); });
+twoTap($("clDelList"), "Delete this list", () => { const C = cls(); C.lists = C.lists.filter(l => l.id !== C.active); C.active = C.lists[0].id; clSave(); });
+
+/* ---------- notes ---------- */
+let nSel = null;
+function sortedNotes() {
+  const q = $("nSearch").value.trim().toLowerCase();
+  return Object.entries(S.notes).map(([id, n]) => ({ id, ...n }))
+    .filter(n => !q || (n.title + " " + n.body).toLowerCase().includes(q))
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.updated || 0) - (a.updated || 0));
+}
+function renderNotes() {
+  const list = $("nList"); list.replaceChildren();
+  const ns = sortedNotes();
+  if (!ns.length) list.append(h("div", { class: "empty-note" }, Object.keys(S.notes).length ? "No notes match." : "No notes yet. Tap New to write one."));
+  ns.forEach(n => list.append(h("button", { type: "button", class: n.id === nSel ? "sel" : "", onclick: () => { nSel = n.id; renderNotes(); fillEditor(true); } },
+    h("span", { class: "t" }, (n.pinned ? "Pinned · " : "") + (n.title || "Untitled")), h("span", { class: "p" }, (n.body || "").split("\n")[0] || "Empty"))));
+  fillEditor(false);
+}
+function fillEditor(force) {
+  const n = nSel && S.notes[nSel];
+  $("nEmpty").hidden = !!n; $("nForm").hidden = !n;
+  if (!n) return;
+  const typing = document.activeElement === $("nTitle") || document.activeElement === $("nBody");
+  if (force || !typing) { $("nTitle").value = n.title || ""; $("nBody").value = n.body || ""; }
+  $("nPin").textContent = n.pinned ? "Unpin" : "Pin";
+  $("nMeta").textContent = n.updated ? "Edited " + new Date(n.updated).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+}
+let nTimer = null;
+function editNote() {
+  const n = S.notes[nSel]; if (!n) return;
+  n.title = $("nTitle").value; n.body = $("nBody").value; n.updated = Date.now();
+  put("notes/" + nSel, n);
+  clearTimeout(nTimer); nTimer = setTimeout(renderNotes, 500);
+}
+$("nTitle").addEventListener("input", editNote); $("nBody").addEventListener("input", editNote);
+$("nSearch").addEventListener("input", renderNotes);
+$("nNew").addEventListener("click", () => { const id = uid(); S.notes[id] = { title: "", body: "", pinned: false, updated: Date.now() }; put("notes/" + id, S.notes[id]); nSel = id; $("nSearch").value = ""; renderNotes(); fillEditor(true); $("nTitle").focus(); });
+$("nPin").addEventListener("click", () => { const n = S.notes[nSel]; n.pinned = !n.pinned; put("notes/" + nSel, n); renderNotes(); });
+twoTap($("nDel"), "Delete", () => { delete S.notes[nSel]; put("notes/" + nSel, null); nSel = null; renderNotes(); });
+
+/* ---------- account, backup, boot ---------- */
+const configured = !SUPABASE_URL.startsWith("PASTE") && !SUPABASE_KEY.startsWith("PASTE");
+function showAuth(which) {
+  $("auth").hidden = false;
+  $("authSetup").hidden = which !== "setup"; $("authForm").hidden = which === "setup";
+  $("authErr").hidden = true; $("authInfo").hidden = true;
+}
+function signedIn(u) {
+  user = u; $("auth").hidden = true; $("acctWho").textContent = u.email; $("acctOut").hidden = false;
+  setSync("Syncing…"); pull();
+}
+function enterLocal() {
+  localOnly = true; try { localStorage.setItem("lm-local", "1"); } catch (e) {}
+  let seeded = false; try { seeded = localStorage.getItem("lm-seeded") === "1"; } catch (e) {}
+  if (!seeded && !(S.hub.timetable && S.hub.timetable.slots.length)) { S.hub.timetable = Object.assign(clone(DEFAULT_TT), { week: mondayOf(todayStr()) }); cache(); }
+  try { localStorage.setItem("lm-seeded", "1"); } catch (e) {}
+  $("auth").hidden = true; $("acctWho").textContent = "No account. Saved on this device only";
+  $("acctOut").hidden = true; $("acctConnect").hidden = !configured;
+  setSync("Saved on this device only"); afterHubLoad(); renderAll();
+}
+$("useLocal").addEventListener("click", enterLocal);
+$("useLocal2").addEventListener("click", enterLocal);
+$("acctConnect").addEventListener("click", () => { localOnly = false; try { localStorage.removeItem("lm-local"); } catch (e) {} $("acctPanel").hidden = true; startCloud(); });
+async function authSubmit(mode) {
+  const email = $("aEmail").value.trim(), pw = $("aPass").value;
+  const err = m => { $("authErr").textContent = m; $("authErr").hidden = false; };
+  $("authErr").hidden = true; $("authInfo").hidden = true;
+  if (!email || pw.length < 6) return err("Enter your email and a password of at least 6 characters.");
+  if (!sb) return err("Can't reach the server. Check your internet connection.");
+  const res = mode === "up" ? await sb.auth.signUp({ email, password: pw }) : await sb.auth.signInWithPassword({ email, password: pw });
+  if (res.error) return err(res.error.message);
+  if (res.data.session) signedIn(res.data.session.user);
+  else { $("authInfo").textContent = "Account created. Open the confirmation email, then come back and sign in."; $("authInfo").hidden = false; }
+}
+$("authForm").addEventListener("submit", e => { e.preventDefault(); authSubmit("in"); });
+$("aSignup").addEventListener("click", () => authSubmit("up"));
+$("acctBtn").addEventListener("click", () => { $("acctPanel").hidden = !$("acctPanel").hidden; });
+twoTap($("acctOut"), "Sign out", async () => {
+  try { await sb.auth.signOut(); } catch (e) {}
+  user = null; pendingData = {}; savePending();
+  for (const k of ["hub", "events", "days", "notes"]) S[k] = {};
+  cache(); $("acctPanel").hidden = true; showAuth("login"); renderAll();
+});
+$("acctBackup").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({ app: "life-checklist", version: 1, exported: new Date().toISOString(), data: S }, null, 1)], { type: "application/json" });
+  const a = h("a", { href: URL.createObjectURL(blob), download: "life-checklist-backup-" + todayStr() + ".json" });
+  document.body.append(a); a.click(); a.remove();
+});
+let restoreData = null;
+$("acctFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!j || !["life-maxxing","life-checklist"].includes(j.app) || !j.data || !j.data.hub) throw 0;
+    restoreData = j.data; $("acctRestoreGo").hidden = false;
+    $("acctRestoreMsg").textContent = "Backup from " + (j.exported || "").slice(0, 10) + " loaded.";
+  } catch (x) { restoreData = null; $("acctRestoreGo").hidden = true; $("acctRestoreMsg").textContent = "That file isn't a Life Checklist backup."; }
+});
+twoTap($("acctRestoreGo"), "Replace my data with this backup", () => {
+  if (!restoreData) return;
+  for (const col of ["hub", "events", "days", "notes"]) {
+    const nd = restoreData[col] || {};
+    for (const id in S[col]) if (!(id in nd)) put(col + "/" + id, null);
+    S[col] = clone(nd);
+    for (const id in nd) put(col + "/" + id, nd[id]);
+  }
+  restoreData = null; $("acctRestoreGo").hidden = true; $("acctRestoreMsg").textContent = "Backup restored."; cache(); renderAll();
+});
+
+async function startCloud() {
+  if (!configured) { showAuth("setup"); return; }
+  if (typeof supabase === "undefined") { setSync("Offline. Showing saved copy"); return; }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT" && user) { user = null; showAuth("login"); } });
+  const { data } = await sb.auth.getSession();
+  if (data.session) signedIn(data.session.user); else showAuth("login");
+}
+
+showTab(tab);
+try { localOnly = localStorage.getItem("lm-local") === "1"; } catch (e) {}
+if (localOnly) enterLocal(); else { setSync("Loading…"); startCloud(); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
+window.addEventListener("online", () => { flushAll(); pull(); });
+setInterval(() => { if (document.visibilityState === "visible") pull(); }, 120000);
+setInterval(() => { const t = todayStr(); if (renderAll._d !== t) { renderAll._d = t; afterHubLoad(); renderAll(); } }, 60000);
+renderAll._d = todayStr();
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
